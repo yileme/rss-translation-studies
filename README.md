@@ -77,12 +77,14 @@ Override the target with `RSS_OBSIDIAN_WEEKLY_DIR=/path/to/folder`.
 https://YOUR-GITHUB-USERNAME.github.io/YOUR-REPOSITORY/feed.xml
 ```
 
-The included workflow refreshes the feed every 6 hours and can also be run manually.
+The included workflow refreshes the feed every 6 hours and can also be run manually. It obtains the published site URL from GitHub Pages and the repository identity from `GITHUB_REPOSITORY`, so generated links follow username, repository, or custom-domain changes automatically.
+
+For local builds, the default published site is `https://yileme.github.io/rss-translation-studies/`. Set `RSS_SITE_URL` to override the published site URL and `GITHUB_REPOSITORY=owner/repository` to override repository links. After changing a GitHub username, existing readers must update their subscription URLs because the old GitHub Pages domain does not redirect.
 
 For this repository, the combined feed is:
 
 ```text
-https://xionglingsong.github.io/rss-translation-studies/feed.xml
+https://yileme.github.io/rss-translation-studies/feed.xml
 ```
 
 ## Included Journals
@@ -182,3 +184,11 @@ Use this checklist whenever adding or repairing a journal.
    - Push to `main`.
    - Check the `Publish RSS feed` GitHub Actions run.
    - After deployment, open the live `manifest.json` and confirm the expected journal count.
+
+## URL Regression Checks
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+These checks generate all feeds, the homepage, OPML, and weekly digest without network requests, and cover repository renames, custom site URLs, and the published-feed fallback.

@@ -21,6 +21,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 BASE_DIR = os.path.dirname(__file__)
 CONFIG_PATH = os.path.join(BASE_DIR, "journals.json")
+GITHUB_REPOSITORY = os.environ.get("GITHUB_REPOSITORY", "yileme/rss-translation-studies")
+REPOSITORY_URL = f"https://github.com/{GITHUB_REPOSITORY}"
+SITE_URL = os.environ.get(
+    "RSS_SITE_URL",
+    f"https://{GITHUB_REPOSITORY.split('/')[0]}.github.io/{GITHUB_REPOSITORY.split('/')[-1]}/",
+).rstrip("/") + "/"
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X) Translation Studies RSS enhancer"
 CACHE_PATH = os.environ.get("ABSTRACT_CACHE_PATH", os.path.join(BASE_DIR, "work", "metadata-cache.json"))
 TRANSLATE_TO_ZH = os.environ.get("TRANSLATE_TO_ZH", "").lower() in ("1", "true", "yes")
@@ -1445,7 +1451,7 @@ def build_weekly_markdown(combined_items, topic_stats, generated_at):
         "",
         f"> 由 Translation Studies RSS 自动生成。范围：{scope_label}；生成时间：{generated_label}。",
         "",
-        "订阅入口：https://xionglingsong.github.io/rss-translation-studies/",
+        f"订阅入口：{SITE_URL}",
         "",
         f"本期共收录 {len(selected_items)} 条新近条目，来自 {len({item.get('source_slug') for item in selected_items})} 本期刊。",
         "",
@@ -1913,7 +1919,7 @@ def build_papers_page(combined_items, generated_at):
 
 
 def build_subscriptions_opml(stats, topic_stats, type_stats, new_feed_stats, keyword_alert_stats, generated_at):
-    base_url = "https://xionglingsong.github.io/rss-translation-studies/"
+    base_url = SITE_URL
 
     def feed_outline(label, filename, description=""):
         return (
@@ -1975,7 +1981,7 @@ def generate_source(source, cache):
             feed = snapshot
             feed["fallback_reason"] = f"沿用缓存：{source_error}"
         else:
-            published_url = f"https://xionglingsong.github.io/rss-translation-studies/{source['slug']}.xml"
+            published_url = f"{SITE_URL}{source['slug']}.xml"
             try:
                 published_xml = fetch_text(
                     published_url,
@@ -2087,7 +2093,7 @@ def generate_all_feeds():
     save_json(CACHE_PATH, cache)
     outputs["feed.xml"] = build_rss(
         "Translation Studies Journals with Abstracts",
-        "https://xionglingsong.github.io/rss-translation-studies/",
+        SITE_URL,
         "Combined enhanced RSS feed for translation and interpreting studies journals.",
         combined_items,
     )
@@ -2098,7 +2104,7 @@ def generate_all_feeds():
         feed_name = topic_feed_name(topic["slug"])
         outputs[feed_name] = build_rss(
             f"{topic['label']} - Translation Studies Articles",
-            f"https://xionglingsong.github.io/rss-translation-studies/{feed_name}",
+            f"{SITE_URL}{feed_name}",
             topic["description"],
             topic_items,
         )
@@ -2115,7 +2121,7 @@ def generate_all_feeds():
     new_feed_stats = {"feed": "new.xml", "count": len(new_items), "tracking_active": update_tracking_active, "windows": [], "topics": []}
     outputs[new_feed_stats["feed"]] = build_rss(
         "Newly Discovered Translation Studies Articles",
-        "https://xionglingsong.github.io/rss-translation-studies/new.xml",
+        f"{SITE_URL}new.xml",
         "Articles first discovered during the most recent successful refresh.",
         new_items,
     )
@@ -2124,7 +2130,7 @@ def generate_all_feeds():
         feed_name = f"new-{days}d.xml"
         outputs[feed_name] = build_rss(
             f"Translation Studies Articles Newly Discovered in {days} Days",
-            f"https://xionglingsong.github.io/rss-translation-studies/{feed_name}",
+            f"{SITE_URL}{feed_name}",
             f"Articles first discovered by this service in the last {days} days.",
             window_items,
         )
@@ -2135,7 +2141,7 @@ def generate_all_feeds():
         feed_name = new_topic_feed_name(topic["slug"])
         outputs[feed_name] = build_rss(
             f"Newly Discovered {topic['label']} Articles",
-            f"https://xionglingsong.github.io/rss-translation-studies/{feed_name}",
+            f"{SITE_URL}{feed_name}",
             f"{topic['label']} articles first discovered during the most recent successful refresh.",
             topic_new_items,
         )
@@ -2147,7 +2153,7 @@ def generate_all_feeds():
         feed_name = type_feed_name(item_type["slug"])
         outputs[feed_name] = build_rss(
             f"{item_type['label']} - Translation Studies Articles",
-            f"https://xionglingsong.github.io/rss-translation-studies/{feed_name}",
+            f"{SITE_URL}{feed_name}",
             item_type["description"],
             type_items,
         )
@@ -2167,7 +2173,7 @@ def generate_all_feeds():
         feed_name = keyword_alert_feed_name(alert["slug"])
         outputs[feed_name] = build_rss(
             f"{alert['label']} Keyword Alert - Translation Studies",
-            f"https://xionglingsong.github.io/rss-translation-studies/{feed_name}",
+            f"{SITE_URL}{feed_name}",
             alert["description"],
             alert_items,
         )
@@ -3251,9 +3257,9 @@ def build_public_index(stats, topic_stats, type_stats, errors, item_count, gener
       </div>
       <div class="subscribe-panel" id="subscribe">
         <h2>总订阅地址</h2>
-        <p>把这个链接添加到任意 RSS 阅读器即可。已有订阅不用改地址，新增期刊会自动进入总 feed。</p>
+        <p>把这个链接添加到任意 RSS 阅读器即可，新增期刊会自动进入总 feed。若仍订阅旧域名，请在阅读器中更新为下方地址。</p>
         <div class="feed-url">
-          <code id="combined-url">https://xionglingsong.github.io/rss-translation-studies/feed.xml</code>
+          <code id="combined-url">{html.escape(SITE_URL)}feed.xml</code>
           <button class="button primary" data-copy="feed.xml">复制</button>
         </div>
         <div class="mini-note">最近生成：{generated_label}。GitHub Actions 每 6 小时自动刷新。<a href="subscriptions.opml">需要按方向、类型或期刊导入？下载 OPML 订阅包。</a></div>
@@ -3478,15 +3484,15 @@ def build_public_index(stats, topic_stats, type_stats, errors, item_count, gener
         <p>这个项目托管在 GitHub Pages，上游源变化时可以在仓库里调整配置并手动刷新。</p>
       </div>
       <div class="manage-grid">
-        <a class="manage-link" href="https://github.com/xionglingsong/rss-translation-studies/edit/main/journals.json">
+        <a class="manage-link" href="{html.escape(REPOSITORY_URL, quote=True)}/edit/main/journals.json">
           <strong>编辑期刊源</strong>
           <span>更新 journals.json</span>
         </a>
-        <a class="manage-link" href="https://github.com/xionglingsong/rss-translation-studies/actions/workflows/publish-feed.yml">
+        <a class="manage-link" href="{html.escape(REPOSITORY_URL, quote=True)}/actions/workflows/publish-feed.yml">
           <strong>刷新 feed</strong>
           <span>运行发布 workflow</span>
         </a>
-        <a class="manage-link" href="https://github.com/xionglingsong/rss-translation-studies/settings/secrets/actions">
+        <a class="manage-link" href="{html.escape(REPOSITORY_URL, quote=True)}/settings/secrets/actions">
           <strong>翻译密钥</strong>
           <span>设置 DEEPSEEK_API_KEY</span>
         </a>
@@ -3496,7 +3502,7 @@ def build_public_index(stats, topic_stats, type_stats, errors, item_count, gener
   </main>
   <div class="toast" id="toast" role="status" aria-live="polite">已复制订阅地址</div>
   <script>
-    const baseUrl = "https://xionglingsong.github.io/rss-translation-studies/";
+    const baseUrl = {json.dumps(SITE_URL)};
     const toast = document.getElementById("toast");
     document.querySelectorAll("[data-copy]").forEach((button) => {{
       button.addEventListener("click", async () => {{

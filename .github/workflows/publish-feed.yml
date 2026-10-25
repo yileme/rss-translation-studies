@@ -29,6 +29,13 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Check publishing URLs
+        run: python -m unittest discover -s tests -v
+
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
       - name: Restore abstract cache
         uses: actions/cache@v4
         with:
@@ -39,12 +46,10 @@ jobs:
 
       - name: Generate static feed
         env:
+          RSS_SITE_URL: ${{ steps.pages.outputs.base_url }}
           TRANSLATE_TO_ZH: "1"
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: python server.py --once public/feed.xml
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
