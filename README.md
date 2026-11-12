@@ -116,14 +116,15 @@ https://yileme.github.io/rss-translation-studies/feed.xml
 
 ## Cross-disciplinary SSCI Sources
 
-The existing 24 translation-studies journals are unchanged. An additional 13 journals are monitored at article level, not subscribed wholesale:
+The existing 24 translation-studies journals are unchanged. An additional 19 journals are monitored at article level, not subscribed wholesale:
 
 - Cognitive neuroscience: Language, Cognition and Neuroscience; Journal of Neurolinguistics; Cortex.
 - Psycholinguistics: Bilingualism: Language and Cognition; Applied Psycholinguistics; Journal of Memory and Language.
 - Education and language learning: System; Language Learning; Computer Assisted Language Learning; ReCALL; Computers & Education; Language Learning & Technology.
 - Human-computer interaction and behavior: Computers in Human Behavior (`computers-human-behavior.xml`).
+- Disability and accessibility: The Journal of Deaf Studies and Deaf Education; American Annals of the Deaf; Journal of Visual Impairment & Blindness; Disability & Society; Assistive Technology; Journal of Special Education Technology.
 
-Each added source uses `article_filter: "translation-related"` and a public `indexing_evidence` URL in `journals.json`. The original twelve cross-disciplinary sources also carry a `discipline` tag; Computers in Human Behavior uses the existing cognition, digital/AI and education topics rather than being mislabeled as a psycholinguistics journal. Public publisher/library indexing evidence was consulted on 2026-11-12; some evidence predates that date. This is a curated starting set, not an exhaustive SSCI list or a live Clarivate entitlement check. Index membership should be periodically rechecked against the Master Journal List.
+Each added source uses `article_filter: "translation-related"` and a public `indexing_evidence` URL in `journals.json`. The original twelve cross-disciplinary sources also carry a `discipline` tag; Computers in Human Behavior uses the existing cognition, digital/AI and education topics rather than being mislabeled as a psycholinguistics journal. Six disability/accessibility journals carry the `disability-accessibility` discipline. American Annals of the Deaf uses its electronic ISSN `1543-0375`: Crossref's journal endpoint for the print ISSN `0002-726X` returns 404, which must not be treated as a healthy empty feed. Public publisher/library indexing evidence was consulted on 2026-11-12; some evidence predates that date. This is a curated starting set, not an exhaustive SSCI list or a live Clarivate entitlement check. Index membership should be periodically rechecked against the Master Journal List.
 
 For these sources, Crossref is scanned over a rolling 730-day publication window with cursor pagination (`lookback_days`, default 730; `search_rows`, default 100; `max_search_pages`, default 100). Only the metadata fields used by this project are requested; reference lists and other large unused fields are omitted. Requests use compressed responses when curl is available, a per-attempt wall-clock limit (`request_timeout`, default 20 seconds) and bounded retries (`request_attempts`, default 2). Truncated HTTP reads and malformed JSON are retried. Records are deduplicated by DOI/URL. Failed or incomplete API responses raise an error instead of masquerading as an empty successful feed. A healthy source with no related papers legitimately produces an empty feed.
 
@@ -131,11 +132,14 @@ Titles and available abstracts are screened for translation, interpreting, subti
 
 This rule-based approach prioritizes precision: it can miss papers whose titles contain no relevant keywords and whose abstracts are unavailable, and it does not search full texts. Intralingual captioned-video learning is intentionally included. Research papers and scholarly reviews remain eligible; the existing article-type feeds can narrow the result further.
 
-Relevant papers enter the existing combined, topic, discovery and weekly feeds automatically. Three additional feeds preserve the source discipline even when article-level topic classification chooses other topics:
+Relevant papers enter the existing combined, topic, discovery and weekly feeds automatically. Four additional feeds preserve the source discipline even when article-level topic classification chooses other topics:
 
 - `topic-cognitive-neuroscience.xml`
 - `topic-psycholinguistics.xml`
 - `topic-education-research.xml`
+- `topic-disability-accessibility.xml`
+
+The accessibility topic also collects relevant AD/SDH papers from the previously configured journals. It recognizes audio description, audio-described content, audiodescription, descriptive video services, closed captions and captioning/subtitles for deaf or hard-of-hearing audiences. The abbreviation AD requires visual-impairment and media context; SDH requires media or hearing-accessibility context. Alzheimer disease, succinate dehydrogenase, unrelated rehabilitation and image/figure captions are not included merely because of ambiguous terminology. Missing-abstract titles with SDH or descriptive-video cues can be enriched before the final relevance check.
 
 The separate `topic-language-human-ai-collaboration.xml` feed collects language-teaching and translation human–technology collaboration. Papers about non-translation language learning/writing enter this topic rather than automatically being mislabeled as translator education or AI translation. Papers that genuinely concern translation may appear in both the original translation topics and this collaboration topic.
 
@@ -157,6 +161,7 @@ The project also publishes classification RSS feeds. Topic feeds are generated a
 - 心理语言学交叉研究: `topic-psycholinguistics.xml`
 - 教育学交叉研究: `topic-education-research.xml`
 - 语言教学与翻译人机协作: `topic-language-human-ai-collaboration.xml`
+- 残障与视听无障碍: `topic-disability-accessibility.xml`
 
 Type feeds are generated from article titles and public metadata:
 

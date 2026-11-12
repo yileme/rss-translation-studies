@@ -99,6 +99,7 @@ TOPICS.extend([
     {"slug": "psycholinguistics", "label": "心理语言学交叉研究", "description": "心理语言学期刊中的翻译、口译、视听翻译及语言教学人机协作研究。"},
     {"slug": "education-research", "label": "教育学交叉研究", "description": "教育及语言学习期刊中与翻译、口译、字幕、配音及语言教学人机协作相关的论文。"},
     {"slug": "language-human-ai-collaboration", "label": "语言教学与翻译人机协作", "description": "外语学习与教学、非母语写作、翻译教学和实践中的人机协作、智能反馈与技术使用研究。"},
+    {"slug": "disability-accessibility", "label": "残障与视听无障碍", "description": "口述影像（AD）、聋人及重听者字幕（SDH）、闭路字幕及相关视听无障碍研究。"},
 ])
 TOPIC_BY_SLUG = {topic["slug"]: topic for topic in TOPICS}
 
@@ -663,6 +664,8 @@ def classify_item(item, fallback_tags):
                 "psycholinguistics", "education-research",
             )]
         topics = list(dict.fromkeys([*topics, "language-human-ai-collaboration"]))
+    if media_accessibility_related(item):
+        topics = list(dict.fromkeys([*topics, "audiovisual-translation", "disability-accessibility"]))
     item["article_topics"] = topics
     item["source_tags"] = topics
     item["topic_labels"] = topic_labels(topics)
@@ -1295,6 +1298,40 @@ def translation_related(item):
     )
 
 
+def media_accessibility_related(item):
+    title = strip_html(item.get("title") or "").lower()
+    if classify_item_type(item) == "book-review" or re.match(
+        r"^(?:editorial|correction|corrigendum|erratum|retraction|in memoriam|special issue)\b", title,
+    ):
+        return False
+    text = " ".join(
+        strip_html(item.get(field) or "") for field in ("title", "abstract", "fallback_description")
+    ).lower()
+    text = re.sub(r"[\u2010-\u2015-]", " ", text)
+    if re.search(r"\b(?:audio describ\w*|audio description\w*|audiodescri\w*|descriptive video services?)\b", text):
+        return True
+    if re.search(r"\b(?:image captioning|figure captions?|table captions?)\b", text):
+        return False
+    hearing_context = re.search(r"\b(?:deaf\w*|hard of hearing|hearing (?:loss|impair\w*)|dhh)\b", text)
+    vision_context = re.search(r"\b(?:blind\w*|low vision|visual(?:ly)? impair\w*|vision impair\w*)\b", text)
+    media_context = re.search(
+        r"\b(?:audiovisual|video\w*|films?|movies?|cinema\w*|television|screen\w*|media|"
+        r"museums?|artworks?|audiences?|viewers?)\b", text,
+    )
+    if re.search(r"\bclosed caption\w*\b", text):
+        return True
+    if hearing_context and re.search(r"\b(?:caption\w*|subtitl\w*)\b", text):
+        return True
+    if vision_context and re.search(r"\bvideo descriptions?\b", text):
+        return True
+    if re.search(r"\bsdh\b", text) and (hearing_context or media_context):
+        return not bool(re.search(r"\bsuccinate dehydrogenase\b", text))
+    return bool(
+        re.search(r"\bad\b", text) and vision_context and media_context
+        and not re.search(r"\b(?:alzheimer\w*|atopic dermatitis)\b", text)
+    )
+
+
 LANGUAGE_EDUCATION_PATTERN = (
     r"\b(?:efl|esl|esol|l2|foreign language\w*|second language\w*|additional language\w*|"
     r"language (?:learn\w*|teach\w*|educat\w*|instruction|acquisition|pedagog\w*)|"
@@ -1332,7 +1369,7 @@ def language_collaboration_related(item):
 
 
 def cross_disciplinary_related(item):
-    return translation_related(item) or language_collaboration_related(item)
+    return translation_related(item) or language_collaboration_related(item) or media_accessibility_related(item)
 
 
 def related_research_candidate(item):
@@ -1342,7 +1379,7 @@ def related_research_candidate(item):
         return False
     title = re.sub(r"[\u2010-\u2015-]", " ", strip_html(item.get("title") or "").lower())
     return bool(
-        re.search(r"\b(?:translat\w*|interpret\w*|caption\w*|subtitl\w*|dubbing)\b", title)
+        re.search(r"\b(?:translat\w*|interpret\w*|caption\w*|subtitl\w*|dubbing|sdh|video descriptions?|descriptive video)\b", title)
         or (re.search(LANGUAGE_EDUCATION_PATTERN, title) and re.search(
             r"\b(?:digital|technolog\w*|online|automated|adaptive|intelligent|virtual|computer\w*|robot\w*|feedback)\b", title,
         ))
@@ -2676,7 +2713,7 @@ def build_public_index(stats, topic_stats, type_stats, errors, item_count, gener
         status_title = stat.get("status_detail") or f"最近成功：{last_success_label or generated_label}"
         status_text = stat["status_label"] + (f" · 最近成功 {last_success_label}" if last_success_label else "")
         tags_html = "".join(f'<span class="tag-chip">{html.escape(label)}</span>' for label in (stat.get("article_tag_labels") or stat.get("tag_labels", [])))
-        scope_html = '<span class="tag-chip">翻译及语言教学人机协作</span>' if stat.get("article_filter") else ""
+        scope_html = '<span class="tag-chip">翻译、语言协作与视听无障碍</span>' if stat.get("article_filter") else ""
         filter_text = " ".join(
             [
                 stat["title"],
@@ -3422,7 +3459,7 @@ def build_public_index(stats, topic_stats, type_stats, errors, item_count, gener
       <div class="hero-copy">
         <div class="eyebrow"><span class="rss-mark" aria-hidden="true"></span> Translation Studies RSS</div>
         <h1>翻译学期刊更新，一处订阅。</h1>
-        <p>这个页面把翻译学、口译研究、本地化、视听翻译等相关期刊的最新文章汇总成一个增强 RSS，并筛选认知神经科学、心理语言学及教育学期刊中的翻译相关论文，以及外语教学、翻译教学与实践中的人机协作研究。跨学科期刊不整刊收录。订阅后，新文章会自动出现在你的阅读器里，尽量附带作者、摘要、DOI、页码和中文摘要。</p>
+        <p>这个页面把翻译学、口译研究、本地化、视听翻译等相关期刊的最新文章汇总成一个增强 RSS，并筛选认知神经科学、心理语言学及教育学期刊中的翻译相关论文，以及外语教学、翻译教学与实践中的人机协作研究，并监测残障研究期刊中的口述影像和聋人、重听者字幕论文。跨学科期刊不整刊收录。订阅后，新文章会自动出现在你的阅读器里，尽量附带作者、摘要、DOI、页码和中文摘要。</p>
         <div class="primary-actions">
           <a class="button primary" href="feed.xml">打开总 RSS</a>
           <button class="button" data-copy="feed.xml">复制订阅地址</button>
