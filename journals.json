@@ -276,7 +276,7 @@
     "max_items": 24,
     "tags": ["cognitive-neuroscience", "cognition-process"],
     "indexing_evidence": "https://miar.ub.edu/issn/2327-3798",
-    "description": "SSCI cognitive neuroscience journal; only translation, interpreting and audiovisual-translation-related papers are included."
+    "description": "SSCI cognitive neuroscience journal; only translation, interpreting, audiovisual translation, and language-teaching/translation human-technology collaboration papers are included."
   },
   {
     "slug": "journal-neurolinguistics",
@@ -290,7 +290,7 @@
     "max_items": 24,
     "tags": ["cognitive-neuroscience", "cognition-process"],
     "indexing_evidence": "https://miar.ub.edu/issn/0911-6044",
-    "description": "SSCI neurolinguistics journal; only translation, interpreting and audiovisual-translation-related papers are included."
+    "description": "SSCI neurolinguistics journal; only translation, interpreting, audiovisual translation, and language-teaching/translation human-technology collaboration papers are included."
   },
   {
     "slug": "cortex",
@@ -304,7 +304,7 @@
     "max_items": 24,
     "tags": ["cognitive-neuroscience", "cognition-process"],
     "indexing_evidence": "https://miar.ub.edu/issn/0010-9452",
-    "description": "SSCI cognitive neuroscience journal; only translation, interpreting and audiovisual-translation-related papers are included."
+    "description": "SSCI cognitive neuroscience journal; only translation, interpreting, audiovisual translation, and language-teaching/translation human-technology collaboration papers are included."
   },
   {
     "slug": "bilingualism-language-cognition",
@@ -318,7 +318,7 @@
     "max_items": 24,
     "tags": ["psycholinguistics", "cognition-process"],
     "indexing_evidence": "https://miar.ub.edu/issn/1366-7289",
-    "description": "SSCI bilingualism journal; only translation, interpreting and audiovisual-translation-related papers are included."
+    "description": "SSCI bilingualism journal; only translation, interpreting, audiovisual translation, and language-teaching/translation human-technology collaboration papers are included."
   },
   {
     "slug": "applied-psycholinguistics",
@@ -332,7 +332,7 @@
     "max_items": 24,
     "tags": ["psycholinguistics", "cognition-process"],
     "indexing_evidence": "https://www.cambridge.org/core/journals/applied-psycholinguistics/information/about-this-journal/abstracting-and-indexing",
-    "description": "SSCI psycholinguistics journal; only translation, interpreting and audiovisual-translation-related papers are included."
+    "description": "SSCI psycholinguistics journal; only translation, interpreting, audiovisual translation, and language-teaching/translation human-technology collaboration papers are included."
   },
   {
     "slug": "journal-memory-language",
@@ -346,7 +346,7 @@
     "max_items": 24,
     "tags": ["psycholinguistics", "cognition-process"],
     "indexing_evidence": "https://miar.ub.edu/issn/0749-596X",
-    "description": "SSCI psycholinguistics journal; only translation, interpreting and audiovisual-translation-related papers are included."
+    "description": "SSCI psycholinguistics journal; only translation, interpreting, audiovisual translation, and language-teaching/translation human-technology collaboration papers are included."
   },
   {
     "slug": "system",
@@ -360,7 +360,7 @@
     "max_items": 24,
     "tags": ["education-research", "translator-education", "audiovisual-translation"],
     "indexing_evidence": "https://miar.ub.edu/issn/0346-251X",
-    "description": "SSCI language education journal; only translation, interpreting and audiovisual-translation-related papers are included."
+    "description": "SSCI language education journal; only translation, interpreting, audiovisual translation, and language-teaching/translation human-technology collaboration papers are included."
   },
   {
     "slug": "language-learning",
@@ -374,7 +374,7 @@
     "max_items": 24,
     "tags": ["education-research", "translator-education", "cognition-process"],
     "indexing_evidence": "https://miar.ub.edu/issn/0023-8333",
-    "description": "SSCI language learning journal; only translation, interpreting and audiovisual-translation-related papers are included."
+    "description": "SSCI language learning journal; only translation, interpreting, audiovisual translation, and language-teaching/translation human-technology collaboration papers are included."
   },
   {
     "slug": "computer-assisted-language-learning",
@@ -388,7 +388,7 @@
     "max_items": 24,
     "tags": ["education-research", "translator-education", "digital-ai-translation", "audiovisual-translation"],
     "indexing_evidence": "https://miar.ub.edu/issn/0958-8221",
-    "description": "SSCI educational technology journal; only translation, interpreting and audiovisual-translation-related papers are included."
+    "description": "SSCI educational technology journal; only translation, interpreting, audiovisual translation, and language-teaching/translation human-technology collaboration papers are included."
   },
   {
     "slug": "recall",
@@ -402,7 +402,7 @@
     "max_items": 24,
     "tags": ["education-research", "translator-education", "audiovisual-translation"],
     "indexing_evidence": "https://www.cambridge.org/core/journals/recall/information/about-this-journal/abstracting-and-indexing",
-    "description": "SSCI language education journal; only translation, interpreting and audiovisual-translation-related papers are included."
+    "description": "SSCI language education journal; only translation, interpreting, audiovisual translation, and language-teaching/translation human-technology collaboration papers are included."
   },
   {
     "slug": "computers-education",
@@ -416,7 +416,7 @@
     "max_items": 24,
     "tags": ["education-research", "translator-education", "audiovisual-translation"],
     "indexing_evidence": "https://miar.ub.edu/issn/0360-1315",
-    "description": "SSCI education journal; only translation, interpreting and audiovisual-translation-related papers are included."
+    "description": "SSCI education journal; only translation, interpreting, audiovisual translation, and language-teaching/translation human-technology collaboration papers are included."
   },
   {
     "slug": "language-learning-technology",
@@ -430,7 +430,7 @@
     "max_items": 24,
     "tags": ["education-research", "translator-education", "digital-ai-translation", "audiovisual-translation"],
     "indexing_evidence": "https://www.lltjournal.org/item-detail/57/",
-    "description": "SSCI language learning journal; only translation, interpreting and audiovisual-translation-related papers are included."
+    "description": "SSCI language learning journal; only translation, interpreting, audiovisual translation, and language-teaching/translation human-technology collaboration papers are included."
   },
   {
     "slug": "computers-human-behavior",
@@ -443,6 +443,6 @@
     "max_items": 24,
     "tags": ["cognition-process", "digital-ai-translation", "translator-education"],
     "indexing_evidence": "https://miar.ub.edu/issn/0747-5632",
-    "description": "SSCI human-computer interaction and psychology journal; only translation, interpreting and audiovisual-translation-related papers are included."
+    "description": "SSCI human-computer interaction and psychology journal; only translation, interpreting, audiovisual translation, and language-teaching/translation human-technology collaboration papers are included."
   }
 ]

@@ -95,9 +95,10 @@ TOPICS = [
     },
 ]
 TOPICS.extend([
-    {"slug": "cognitive-neuroscience", "label": "认知神经科学交叉研究", "description": "认知神经科学期刊中与翻译、口译及视听翻译相关的论文。"},
-    {"slug": "psycholinguistics", "label": "心理语言学交叉研究", "description": "心理语言学期刊中与翻译、口译及视听翻译相关的论文。"},
-    {"slug": "education-research", "label": "教育学交叉研究", "description": "教育及语言学习期刊中与翻译、口译、字幕及配音相关的论文。"},
+    {"slug": "cognitive-neuroscience", "label": "认知神经科学交叉研究", "description": "认知神经科学期刊中的翻译、口译、视听翻译及语言教学人机协作研究。"},
+    {"slug": "psycholinguistics", "label": "心理语言学交叉研究", "description": "心理语言学期刊中的翻译、口译、视听翻译及语言教学人机协作研究。"},
+    {"slug": "education-research", "label": "教育学交叉研究", "description": "教育及语言学习期刊中与翻译、口译、字幕、配音及语言教学人机协作相关的论文。"},
+    {"slug": "language-human-ai-collaboration", "label": "语言教学与翻译人机协作", "description": "外语学习与教学、非母语写作、翻译教学和实践中的人机协作、智能反馈与技术使用研究。"},
 ])
 TOPIC_BY_SLUG = {topic["slug"]: topic for topic in TOPICS}
 
@@ -655,6 +656,13 @@ def classify_item_type(item):
 
 def classify_item(item, fallback_tags):
     topics = classify_item_topics(item, fallback_tags)
+    if language_collaboration_related(item):
+        if not translation_related(item):
+            topics = [topic for topic in topics if topic in (
+                "cognition-process", "society-culture", "cognitive-neuroscience",
+                "psycholinguistics", "education-research",
+            )]
+        topics = list(dict.fromkeys([*topics, "language-human-ai-collaboration"]))
     item["article_topics"] = topics
     item["source_tags"] = topics
     item["topic_labels"] = topic_labels(topics)
@@ -1284,6 +1292,63 @@ def translation_related(item):
         re.search(r"\b(?:caption(?:s|ed|ing)?|closed captions?)\b", text)
         and re.search(r"\b(?:video\w*|film\w*|movie\w*|audiovisual|deaf|hearing|listening|l2)\b", text)
         and not re.search(r"\b(?:image captioning|figure captions?|table captions?)\b", text)
+    )
+
+
+LANGUAGE_EDUCATION_PATTERN = (
+    r"\b(?:efl|esl|esol|l2|foreign language\w*|second language\w*|additional language\w*|"
+    r"language (?:learn\w*|teach\w*|educat\w*|instruction|acquisition|pedagog\w*)|"
+    r"english (?:learn\w*|teach\w*|language learn\w*|writing instruction)|"
+    r"non native (?:english )?(?:speakers?|writers?|learners?|students?))\b"
+)
+LANGUAGE_COLLABORATION_TECH_PATTERN = (
+    r"\b(?:ai|artificial intelligence|large language models?|llms?|chatgpt|gpt ?[345]\w*|"
+    r"chatbots?|conversational agents?|social robots?|robot assisted|human (?:computer|machine|robot)|computer assisted|"
+    r"intelligent tutor\w*|automated (?:writing|(?:corrective )?feedback)|"
+    r"machine translation|neural machine translation)\b"
+)
+
+
+def language_collaboration_related(item):
+    title = strip_html(item.get("title") or "").lower()
+    if classify_item_type(item) == "book-review" or re.match(
+        r"^(?:editorial|correction|corrigendum|erratum|retraction|in memoriam|special issue)\b", title,
+    ):
+        return False
+    text = " ".join(
+        strip_html(item.get(field) or "") for field in ("title", "abstract", "fallback_description")
+    ).lower()
+    text = re.sub(r"[\u2010-\u2015-]", " ", text)
+    language_education = re.search(LANGUAGE_EDUCATION_PATTERN, text)
+    if not language_education and not translation_related(item):
+        return False
+    if not re.search(LANGUAGE_COLLABORATION_TECH_PATTERN, text):
+        return False
+    return bool(language_education or re.search(
+        r"\b(?:human\w*|translators?|interpreters?|students?|teachers?|learners?|post edit\w*|"
+        r"collaborat\w*|interact\w*|feedback|trust|users?|usability|cognitive|workload|"
+        r"effort|workflow|adoption|acceptance|behaviou?r|decision\w*)\b", text,
+    ))
+
+
+def cross_disciplinary_related(item):
+    return translation_related(item) or language_collaboration_related(item)
+
+
+def related_research_candidate(item):
+    if cross_disciplinary_related(item):
+        return True
+    if usable_abstract(item.get("abstract") or item.get("fallback_description")):
+        return False
+    title = re.sub(r"[\u2010-\u2015-]", " ", strip_html(item.get("title") or "").lower())
+    return bool(
+        re.search(r"\b(?:translat\w*|interpret\w*|caption\w*|subtitl\w*|dubbing)\b", title)
+        or (re.search(LANGUAGE_EDUCATION_PATTERN, title) and re.search(
+            r"\b(?:digital|technolog\w*|online|automated|adaptive|intelligent|virtual|computer\w*|robot\w*|feedback)\b", title,
+        ))
+        or (re.search(LANGUAGE_COLLABORATION_TECH_PATTERN, title) and re.search(
+            r"\b(?:writing|speaking|reading|listening|feedback|learning|teaching|learners?|classroom)\b", title,
+        ))
     )
 
 
@@ -2095,13 +2160,7 @@ def generate_source(source, cache):
                 raise RuntimeError(f"{source_error}; published-feed fallback failed: {fallback_error}") from source_error
     filtered = source.get("article_filter") == "translation-related"
     if filtered:
-        items_to_enrich = [
-            item for item in feed["items"]
-            if translation_related(item) or (
-                not usable_abstract(item.get("abstract") or item.get("fallback_description"))
-                and re.search(r"\b(?:translat\w*|interpret\w*|caption\w*|subtitl\w*|dubbing)\b", item.get("title", ""), re.I)
-            )
-        ]
+        items_to_enrich = [item for item in feed["items"] if related_research_candidate(item)]
     else:
         items_to_enrich = feed["items"][: source.get("max_items", MAX_ITEMS_PER_SOURCE)]
     if source.get("enrich_from_article_page"):
@@ -2117,7 +2176,7 @@ def generate_source(source, cache):
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, MAX_WORKERS)) as executor:
             items = list(executor.map(lambda item: safe_enrich_tandfonline_abstract(item, cache), items))
     if filtered:
-        items = [item for item in items if translation_related(item)]
+        items = [item for item in items if cross_disciplinary_related(item)]
         items.sort(key=lambda item: parse_date(item.get("date")), reverse=True)
         items = items[: source.get("max_items", MAX_ITEMS_PER_SOURCE)]
     if TRANSLATE_TO_ZH and DEEPSEEK_API_KEY:
@@ -2617,7 +2676,7 @@ def build_public_index(stats, topic_stats, type_stats, errors, item_count, gener
         status_title = stat.get("status_detail") or f"最近成功：{last_success_label or generated_label}"
         status_text = stat["status_label"] + (f" · 最近成功 {last_success_label}" if last_success_label else "")
         tags_html = "".join(f'<span class="tag-chip">{html.escape(label)}</span>' for label in (stat.get("article_tag_labels") or stat.get("tag_labels", [])))
-        scope_html = '<span class="tag-chip">仅翻译相关论文</span>' if stat.get("article_filter") else ""
+        scope_html = '<span class="tag-chip">翻译及语言教学人机协作</span>' if stat.get("article_filter") else ""
         filter_text = " ".join(
             [
                 stat["title"],
@@ -3363,7 +3422,7 @@ def build_public_index(stats, topic_stats, type_stats, errors, item_count, gener
       <div class="hero-copy">
         <div class="eyebrow"><span class="rss-mark" aria-hidden="true"></span> Translation Studies RSS</div>
         <h1>翻译学期刊更新，一处订阅。</h1>
-        <p>这个页面把翻译学、口译研究、本地化、视听翻译等相关期刊的最新文章汇总成一个增强 RSS，并筛选认知神经科学、心理语言学及教育学期刊中的翻译相关论文。跨学科期刊不整刊收录。订阅后，新文章会自动出现在你的阅读器里，尽量附带作者、摘要、DOI、页码和中文摘要。</p>
+        <p>这个页面把翻译学、口译研究、本地化、视听翻译等相关期刊的最新文章汇总成一个增强 RSS，并筛选认知神经科学、心理语言学及教育学期刊中的翻译相关论文，以及外语教学、翻译教学与实践中的人机协作研究。跨学科期刊不整刊收录。订阅后，新文章会自动出现在你的阅读器里，尽量附带作者、摘要、DOI、页码和中文摘要。</p>
         <div class="primary-actions">
           <a class="button primary" href="feed.xml">打开总 RSS</a>
           <button class="button" data-copy="feed.xml">复制订阅地址</button>

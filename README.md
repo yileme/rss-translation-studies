@@ -127,7 +127,7 @@ Each added source uses `article_filter: "translation-related"` and a public `ind
 
 For these sources, Crossref is scanned over a rolling 730-day publication window with cursor pagination (`lookback_days`, default 730; `search_rows`, default 100; `max_search_pages`, default 100). Only the metadata fields used by this project are requested; reference lists and other large unused fields are omitted. Requests use compressed responses when curl is available, a per-attempt wall-clock limit (`request_timeout`, default 20 seconds) and bounded retries (`request_attempts`, default 2). Truncated HTTP reads and malformed JSON are retried. Records are deduplicated by DOI/URL. Failed or incomplete API responses raise an error instead of masquerading as an empty successful feed. A healthy source with no related papers legitimately produces an empty feed.
 
-Titles and available abstracts are screened for translation, interpreting, subtitling, dubbing, audio description and captioned-video research. Ambiguous translation/interpreter terms require a language context; protein translation, knowledge translation and image/figure captions are excluded. Missing abstracts are enriched when a title contains a potential translation/interpreting/caption keyword, then the final relevance filter is reapplied. Filtering occurs before the output limit (24 matching papers per added journal) and before Chinese translation, including when a cached or published fallback is used.
+Titles and available abstracts are screened for translation, interpreting, subtitling, dubbing, audio description and captioned-video research. The backward-compatible `translation-related` filter also includes human–technology collaboration in foreign/second-language learning and teaching, non-native writing, translator/interpreter education and translation practice. Examples include AI-assisted EFL writing, conversational agents, robot-assisted language learning, intelligent tutoring, automated corrective feedback and human–machine translation workflows. Both a language/translation context and a relevant technology/interaction context are required; general human–AI trust, general cognitive-fit studies, business writing and AI in education without a language/translation context remain excluded. Ambiguous translation/interpreter terms require a language context; protein translation, knowledge translation and image/figure captions are excluded. Missing abstracts are enriched when a title contains a potential translation/interpreting/caption keyword, a language-education context with a technology cue, or an AI-writing/feedback cue; the final relevance filter is then reapplied. Plain language-education titles without technology cues are not all sent for expensive metadata enrichment. Filtering occurs before the output limit (24 matching papers per added journal) and before Chinese translation, including when a cached or published fallback is used.
 
 This rule-based approach prioritizes precision: it can miss papers whose titles contain no relevant keywords and whose abstracts are unavailable, and it does not search full texts. Intralingual captioned-video learning is intentionally included. Research papers and scholarly reviews remain eligible; the existing article-type feeds can narrow the result further.
 
@@ -136,6 +136,8 @@ Relevant papers enter the existing combined, topic, discovery and weekly feeds a
 - `topic-cognitive-neuroscience.xml`
 - `topic-psycholinguistics.xml`
 - `topic-education-research.xml`
+
+The separate `topic-language-human-ai-collaboration.xml` feed collects language-teaching and translation human–technology collaboration. Papers about non-translation language learning/writing enter this topic rather than automatically being mislabeled as translator education or AI translation. Papers that genuinely concern translation may appear in both the original translation topics and this collaboration topic.
 
 Changes to local files do not publish the site; publication still requires the normal GitHub Actions deployment.
 
@@ -154,6 +156,7 @@ The project also publishes classification RSS feeds. Topic feeds are generated a
 - 认知神经科学交叉研究: `topic-cognitive-neuroscience.xml`
 - 心理语言学交叉研究: `topic-psycholinguistics.xml`
 - 教育学交叉研究: `topic-education-research.xml`
+- 语言教学与翻译人机协作: `topic-language-human-ai-collaboration.xml`
 
 Type feeds are generated from article titles and public metadata:
 

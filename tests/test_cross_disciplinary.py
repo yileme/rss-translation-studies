@@ -274,7 +274,7 @@ class CrossDisciplinaryTest(unittest.TestCase):
             self.assertEqual(len(ET.fromstring(outputs[filename]).findall("channel/item")), expected_count)
             self.assertIn(filename, outputs["subscriptions.opml"])
             self.assertIn(filename, outputs["index.html"])
-        self.assertEqual(outputs["index.html"].count("仅翻译相关论文"), 13)
+        self.assertEqual(outputs["index.html"].count('<span class="tag-chip">翻译及语言教学人机协作</span>'), 13)
         human_behavior_feed = ET.fromstring(outputs["computers-human-behavior.xml"])
         self.assertEqual(len(human_behavior_feed.findall("channel/item")), 1)
         human_behavior_source = next(source for source in filtered if source["slug"] == "computers-human-behavior")
