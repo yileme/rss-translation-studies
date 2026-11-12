@@ -114,6 +114,30 @@ https://yileme.github.io/rss-translation-studies/feed.xml
 - The Journal of Specialised Translation
 - Interpreting and Society
 
+## Cross-disciplinary SSCI Sources
+
+The existing 24 translation-studies journals are unchanged. An additional 12 journals are monitored at article level, not subscribed wholesale:
+
+- Cognitive neuroscience: Language, Cognition and Neuroscience; Journal of Neurolinguistics; Cortex.
+- Psycholinguistics: Bilingualism: Language and Cognition; Applied Psycholinguistics; Journal of Memory and Language.
+- Education and language learning: System; Language Learning; Computer Assisted Language Learning; ReCALL; Computers & Education; Language Learning & Technology.
+
+Each added source uses `article_filter: "translation-related"`, a `discipline` tag and a public `indexing_evidence` URL in `journals.json`. Public publisher/library indexing evidence was consulted on 2026-11-12; some evidence predates that date. This is a curated starting set, not an exhaustive SSCI list or a live Clarivate entitlement check. Index membership should be periodically rechecked against the Master Journal List.
+
+For these sources, Crossref is scanned over a rolling 730-day publication window with cursor pagination (`lookback_days`, default 730; `search_rows`, default 100; `max_search_pages`, default 100). Only the metadata fields used by this project are requested; reference lists and other large unused fields are omitted. Requests use compressed responses when curl is available, a per-attempt wall-clock limit (`request_timeout`, default 20 seconds) and bounded retries (`request_attempts`, default 2). Truncated HTTP reads and malformed JSON are retried. Records are deduplicated by DOI/URL. Failed or incomplete API responses raise an error instead of masquerading as an empty successful feed. A healthy source with no related papers legitimately produces an empty feed.
+
+Titles and available abstracts are screened for translation, interpreting, subtitling, dubbing, audio description and captioned-video research. Ambiguous translation/interpreter terms require a language context; protein translation, knowledge translation and image/figure captions are excluded. Missing abstracts are enriched when a title contains a potential translation/interpreting/caption keyword, then the final relevance filter is reapplied. Filtering occurs before the output limit (24 matching papers per added journal) and before Chinese translation, including when a cached or published fallback is used.
+
+This rule-based approach prioritizes precision: it can miss papers whose titles contain no relevant keywords and whose abstracts are unavailable, and it does not search full texts. Intralingual captioned-video learning is intentionally included. Research papers and scholarly reviews remain eligible; the existing article-type feeds can narrow the result further.
+
+Relevant papers enter the existing combined, topic, discovery and weekly feeds automatically. Three additional feeds preserve the source discipline even when article-level topic classification chooses other topics:
+
+- `topic-cognitive-neuroscience.xml`
+- `topic-psycholinguistics.xml`
+- `topic-education-research.xml`
+
+Changes to local files do not publish the site; publication still requires the normal GitHub Actions deployment.
+
 ## Classification Feeds
 
 The project also publishes classification RSS feeds. Topic feeds are generated at article level from titles and abstracts, so different articles from the same journal can appear in different topic feeds.
@@ -126,6 +150,9 @@ The project also publishes classification RSS feeds. Topic feeds are generated a
 - 数字与 AI 翻译: `topic-digital-ai-translation.xml`
 - 视听翻译: `topic-audiovisual-translation.xml`
 - 术语与专门用途翻译: `topic-terminology-specialized-translation.xml`
+- 认知神经科学交叉研究: `topic-cognitive-neuroscience.xml`
+- 心理语言学交叉研究: `topic-psycholinguistics.xml`
+- 教育学交叉研究: `topic-education-research.xml`
 
 Type feeds are generated from article titles and public metadata:
 

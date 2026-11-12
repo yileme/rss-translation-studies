@@ -3,6 +3,7 @@ import argparse
 import concurrent.futures
 import hashlib
 import html
+import http.client
 import json
 import os
 import re
@@ -93,6 +94,11 @@ TOPICS = [
         "description": "术语学、专门用途语言、专门翻译与知识传播。",
     },
 ]
+TOPICS.extend([
+    {"slug": "cognitive-neuroscience", "label": "认知神经科学交叉研究", "description": "认知神经科学期刊中与翻译、口译及视听翻译相关的论文。"},
+    {"slug": "psycholinguistics", "label": "心理语言学交叉研究", "description": "心理语言学期刊中与翻译、口译及视听翻译相关的论文。"},
+    {"slug": "education-research", "label": "教育学交叉研究", "description": "教育及语言学习期刊中与翻译、口译、字幕及配音相关的论文。"},
+])
 TOPIC_BY_SLUG = {topic["slug"]: topic for topic in TOPICS}
 
 ARTICLE_TYPES = [
@@ -254,7 +260,11 @@ TOPIC_KEYWORDS = {
         "audiovisual",
         "subtitling",
         "subtitle",
+        "subtitles",
         "caption",
+        "captions",
+        "captioned",
+        "captioning",
         "dubbing",
         "voice-over",
         "audio description",
@@ -354,7 +364,7 @@ def fetch_text(url, accept="*/*", timeout=5, attempts=3, use_curl=True, headers=
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 data = response.read()
                 return data.decode(response.headers.get_content_charset() or "utf-8", errors="replace")
-        except (urllib.error.URLError, TimeoutError) as error:
+        except (urllib.error.URLError, TimeoutError, http.client.IncompleteRead, ConnectionError) as error:
             last_error = error
             time.sleep(1 + attempt)
 
@@ -399,6 +409,10 @@ def load_journals():
         unknown_tags = [tag for tag in tags if tag not in TOPIC_BY_SLUG]
         if unknown_tags:
             raise ValueError(f"Unknown topic tags for {journal.get('slug', 'unknown')}: {', '.join(unknown_tags)}")
+        if journal.get("article_filter") not in (None, "translation-related"):
+            raise ValueError(f"Unknown article filter for {journal.get('slug', 'unknown')}")
+        if journal.get("discipline") and journal["discipline"] not in tags:
+            raise ValueError(f"Missing discipline tag for {journal.get('slug', 'unknown')}")
     return journals
 
 
@@ -681,33 +695,32 @@ def reconstruct_openalex_abstract(inverted_index):
     return " ".join(word for _, word in sorted(words)).strip()
 
 
-def api_json(url):
-    if shutil.which("curl"):
+def api_json(url, timeout=5, use_curl=True, attempts=1):
+    curl_available = use_curl and shutil.which("curl")
+    for attempt in range(attempts):
         try:
-            completed = subprocess.run(
-                ["curl", "-fsSL", "--max-time", "5", "-A", USER_AGENT, "-H", "Accept: application/json", url],
-                check=True,
-                capture_output=True,
-                text=True,
-                timeout=7,
-            )
-            return json.loads(completed.stdout)
+            if curl_available:
+                completed = subprocess.run(
+                    ["curl", "-fsSL", "--compressed", "--max-time", str(timeout), "-A", USER_AGENT, "-H", "Accept: application/json", url],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout + 2,
+                )
+                return json.loads(completed.stdout)
+            return json.loads(fetch_text(url, accept="application/json", timeout=timeout, attempts=1, use_curl=False))
         except (
+            urllib.error.URLError,
+            TimeoutError,
+            http.client.IncompleteRead,
+            ConnectionError,
             subprocess.CalledProcessError,
             subprocess.TimeoutExpired,
             json.JSONDecodeError,
         ):
-            return {}
-    try:
-        return json.loads(fetch_text(url, accept="application/json", attempts=1, use_curl=False))
-    except (
-        urllib.error.URLError,
-        TimeoutError,
-        json.JSONDecodeError,
-        subprocess.CalledProcessError,
-        subprocess.TimeoutExpired,
-    ):
-        return {}
+            if attempt + 1 < attempts:
+                time.sleep(1 + attempt)
+    return {}
 
 
 def post_json(url, payload, headers=None, timeout=20):
@@ -736,7 +749,7 @@ def authors_from_crossref(authors):
 
 
 def crossref_date(message):
-    for key in ("published-online", "published-print", "published", "created"):
+    for key in ("published-online", "published-print", "published", "issued", "created"):
         parts = (message.get(key) or {}).get("date-parts") or []
         if parts and parts[0]:
             year = parts[0][0]
@@ -1227,13 +1240,99 @@ def parse_source_feed(source):
     return parse_feed_xml(xml_text, source)
 
 
-def parse_crossref_source(source):
-    rows = source.get("max_items", MAX_ITEMS_PER_SOURCE)
+def translation_related(item):
+    title = strip_html(item.get("title") or "").lower()
+    if classify_item_type(item) == "book-review" or re.match(
+        r"^(?:editorial|correction|corrigendum|erratum|retraction|in memoriam|special issue)\b", title,
+    ):
+        return False
+    if re.search(r"\b(?:ticker[ -]tape|syn[ae]sthesi[ae]|psychotic subtitles)\b", title):
+        return False
+    text = " ".join(
+        strip_html(item.get(field) or "") for field in ("title", "abstract", "fallback_description")
+    ).lower()
+    text = re.sub(r"[\u2010-\u2015-]", " ", text)
+    if re.search(
+        r"\b(?:subtitl\w*|dubbing|audiovisual translation|audio describ\w*|audio description\w*|"
+        r"simultaneous interpret\w*|consecutive interpret\w*|conference interpret\w*|"
+        r"community interpret\w*|court interpret\w*|medical interpret\w*|healthcare interpret\w*|"
+        r"sign(?:ed)? language interpret\w*|sight translat\w*|machine translat\w*|"
+        r"human translat\w*|translator\w*|translation (?:priming|equivalen\w*|ambiguity|recognition))\b",
+        text,
+    ):
+        return True
+    language_context = re.search(
+        r"\b(?:bilingual\w*|multilingual\w*|interlingual\w*|cross lingual|cross language|"
+        r"language\w*|linguistic\w*|lexical|semantic\w*|l1|l2|source text|target text)\b", text,
+    )
+    translation_term = r"\b(?:translations?|translating|translated|translates?|interpreters?)\b"
+    translation_focus = re.search(
+        r"\b(?:translation (?:tasks?|process\w*|direction\w*|performance|quality|strateg\w*|"
+        r"training|competenc\w*|expertise|production|activit\w*|exercises?)|"
+        r"(?:word|sentence|text) translation|translat(?:e[sd]?|ing) (?:words?|sentences?|texts?)|"
+        r"(?:professional|trained) interpreters?|interpreter training)\b", text,
+    )
+    if language_context and re.search(translation_term, text) and (
+        re.search(translation_term, title) or translation_focus
+    ):
+        if not re.search(
+            r"\b(?:protein|ribosom\w*|mrna|gene expression|python|bytecode|programming language|translational (?:medicine|research)|"
+            r"knowledge translation|translat\w* (?:research|evidence|findings) into (?:practice|policy))\b", text,
+        ):
+            return True
+    return bool(
+        re.search(r"\b(?:caption(?:s|ed|ing)?|closed captions?)\b", text)
+        and re.search(r"\b(?:video\w*|film\w*|movie\w*|audiovisual|deaf|hearing|listening|l2)\b", text)
+        and not re.search(r"\b(?:image captioning|figure captions?|table captions?)\b", text)
+    )
+
+
+def crossref_source_works(source):
+    filtered = source.get("article_filter") == "translation-related"
     issn = urllib.parse.quote(source["issn"], safe="")
-    url = f"https://api.crossref.org/journals/{issn}/works?sort=published&order=desc&rows={rows}&filter=type:journal-article"
-    data = api_json(url)
+    filters = "type:journal-article"
+    if filtered:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=source.get("lookback_days", 730))
+        filters += f",from-pub-date:{cutoff.date().isoformat()}"
+    params = {
+        "sort": "indexed" if filtered else "published", "order": "desc", "filter": filters,
+        "rows": source.get("search_rows", 100) if filtered else source.get("max_items", MAX_ITEMS_PER_SOURCE),
+    }
+    works = {}
+    if filtered:
+        params["cursor"] = "*"
+        params["select"] = "DOI,title,author,abstract,URL,issued,published,published-print,published-online,created,volume,issue,page,link"
+    for page_number in range(source.get("max_search_pages", 100) if filtered else 1):
+        url = f"https://api.crossref.org/journals/{issn}/works?{urllib.parse.urlencode(params)}"
+        data = api_json(
+            url, timeout=source.get("request_timeout", 20), attempts=source.get("request_attempts", 2),
+        ) if filtered else api_json(url)
+        message = data.get("message")
+        if not isinstance(message, dict) or not isinstance(message.get("items"), list):
+            raise RuntimeError(f"Crossref returned no valid result for {source['slug']}")
+        for work in message["items"]:
+            identity = (work.get("DOI") or work.get("URL") or "").lower()
+            if identity:
+                works.setdefault(identity, work)
+        if not filtered:
+            return list(works.values())
+        total = message.get("total-results")
+        if not isinstance(total, int) or total < 0:
+            raise RuntimeError(f"Crossref missing result count for {source['slug']}")
+        if len(works) >= total:
+            return list(works.values())
+        if not message["items"]:
+            raise RuntimeError(f"Crossref incomplete pagination for {source['slug']}")
+        cursor = message.get("next-cursor")
+        if not cursor:
+            raise RuntimeError(f"Crossref missing pagination cursor for {source['slug']}")
+        params["cursor"] = cursor
+    raise RuntimeError(f"Crossref search limit reached for {source['slug']}; increase max_search_pages")
+
+
+def parse_crossref_source(source):
     items = []
-    for work in (data.get("message") or {}).get("items") or []:
+    for work in crossref_source_works(source):
         doi = work.get("DOI") or ""
         title = strip_html((work.get("title") or [""])[0])
         abstract = strip_html(work.get("abstract") or "")
@@ -1994,7 +2093,17 @@ def generate_source(source, cache):
                 source_snapshots[source["slug"]] = {"feed": feed, "fetched_at": time.time()}
             except Exception as fallback_error:
                 raise RuntimeError(f"{source_error}; published-feed fallback failed: {fallback_error}") from source_error
-    items_to_enrich = feed["items"][: source.get("max_items", MAX_ITEMS_PER_SOURCE)]
+    filtered = source.get("article_filter") == "translation-related"
+    if filtered:
+        items_to_enrich = [
+            item for item in feed["items"]
+            if translation_related(item) or (
+                not usable_abstract(item.get("abstract") or item.get("fallback_description"))
+                and re.search(r"\b(?:translat\w*|interpret\w*|caption\w*|subtitl\w*|dubbing)\b", item.get("title", ""), re.I)
+            )
+        ]
+    else:
+        items_to_enrich = feed["items"][: source.get("max_items", MAX_ITEMS_PER_SOURCE)]
     if source.get("enrich_from_article_page"):
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             page_metadata = list(
@@ -2007,6 +2116,10 @@ def generate_source(source, cache):
     if source.get("enrich_tandfonline_abstracts"):
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, MAX_WORKERS)) as executor:
             items = list(executor.map(lambda item: safe_enrich_tandfonline_abstract(item, cache), items))
+    if filtered:
+        items = [item for item in items if translation_related(item)]
+        items.sort(key=lambda item: parse_date(item.get("date")), reverse=True)
+        items = items[: source.get("max_items", MAX_ITEMS_PER_SOURCE)]
     if TRANSLATE_TO_ZH and DEEPSEEK_API_KEY:
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, MAX_WORKERS)) as executor:
             items = list(executor.map(lambda item: translate_item(item, cache), items))
@@ -2031,6 +2144,10 @@ def generate_all_feeds():
             tags = source.get("tags", [])
             for item in items:
                 classify_item(item, tags)
+                if source.get("article_filter") == "translation-related" and source.get("discipline"):
+                    item["source_tags"] = list(dict.fromkeys([*item["source_tags"], source["discipline"]]))
+                    item["article_topics"] = item["source_tags"]
+                    item["topic_labels"] = topic_labels(item["source_tags"])
             combined_items.extend(items)
             weak_abstracts = sum(1 for item in items if weak_abstract(item))
             article_topic_slugs = []
@@ -2066,6 +2183,8 @@ def generate_all_feeds():
                     "source_feed": source.get("source_feed", ""),
                     "source_type": source_type,
                     "source_label": source_type_label(source_type),
+                    "article_filter": source.get("article_filter", ""),
+                    "discipline": source.get("discipline", ""),
                     "tags": tags,
                     "tag_labels": topic_labels(tags),
                     "article_tags": article_topic_slugs,
@@ -2497,7 +2616,8 @@ def build_public_index(stats, topic_stats, type_stats, errors, item_count, gener
             last_success_label = datetime.fromisoformat(last_success_at).strftime("%Y-%m-%d %H:%M UTC")
         status_title = stat.get("status_detail") or f"最近成功：{last_success_label or generated_label}"
         status_text = stat["status_label"] + (f" · 最近成功 {last_success_label}" if last_success_label else "")
-        tags_html = "".join(f'<span class="tag-chip">{html.escape(label)}</span>' for label in stat.get("article_tag_labels", []))
+        tags_html = "".join(f'<span class="tag-chip">{html.escape(label)}</span>' for label in (stat.get("article_tag_labels") or stat.get("tag_labels", [])))
+        scope_html = '<span class="tag-chip">仅翻译相关论文</span>' if stat.get("article_filter") else ""
         filter_text = " ".join(
             [
                 stat["title"],
@@ -2514,7 +2634,7 @@ def build_public_index(stats, topic_stats, type_stats, errors, item_count, gener
               <td data-label="期刊">
                 <strong>{html.escape(stat["title"])}</strong>
                 <span>{html.escape(stat["publisher"])}</span>
-                <div class="tag-list">{tags_html}</div>
+                <div class="tag-list">{tags_html}{scope_html}</div>
               </td>
               <td data-label="条目"><span class="number">{stat["items"]}</span></td>
               <td data-label="中文"><span class="number">{stat["translated"]}</span></td>
@@ -3243,7 +3363,7 @@ def build_public_index(stats, topic_stats, type_stats, errors, item_count, gener
       <div class="hero-copy">
         <div class="eyebrow"><span class="rss-mark" aria-hidden="true"></span> Translation Studies RSS</div>
         <h1>翻译学期刊更新，一处订阅。</h1>
-        <p>这个页面把翻译学、口译研究、本地化、视听翻译等相关期刊的最新文章汇总成一个增强 RSS。订阅后，新文章会自动出现在你的阅读器里，尽量附带作者、摘要、DOI、页码和中文摘要。</p>
+        <p>这个页面把翻译学、口译研究、本地化、视听翻译等相关期刊的最新文章汇总成一个增强 RSS，并筛选认知神经科学、心理语言学及教育学期刊中的翻译相关论文。跨学科期刊不整刊收录。订阅后，新文章会自动出现在你的阅读器里，尽量附带作者、摘要、DOI、页码和中文摘要。</p>
         <div class="primary-actions">
           <a class="button primary" href="feed.xml">打开总 RSS</a>
           <button class="button" data-copy="feed.xml">复制订阅地址</button>
