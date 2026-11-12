@@ -252,11 +252,12 @@ class CrossDisciplinaryTest(unittest.TestCase):
     def test_configuration_and_discipline_feeds(self):
         sources = self.server.load_journals()
         filtered = [source for source in sources if source.get("article_filter")]
-        self.assertEqual(len(sources), 36)
-        self.assertEqual(len(filtered), 12)
+        self.assertEqual(len(sources), 37)
+        self.assertEqual(len(filtered), 13)
         self.assertEqual(len({source["slug"] for source in sources}), len(sources))
         for source in filtered:
-            self.assertIn(source["discipline"], source["tags"])
+            if source.get("discipline"):
+                self.assertIn(source["discipline"], source["tags"])
             self.assertTrue(source["indexing_evidence"].startswith("http"))
         def fixture(source, cache):
             item = self.item("Simultaneous interpreting", identity=source["slug"])
@@ -273,7 +274,12 @@ class CrossDisciplinaryTest(unittest.TestCase):
             self.assertEqual(len(ET.fromstring(outputs[filename]).findall("channel/item")), expected_count)
             self.assertIn(filename, outputs["subscriptions.opml"])
             self.assertIn(filename, outputs["index.html"])
-        self.assertEqual(outputs["index.html"].count("仅翻译相关论文"), 12)
+        self.assertEqual(outputs["index.html"].count("仅翻译相关论文"), 13)
+        human_behavior_feed = ET.fromstring(outputs["computers-human-behavior.xml"])
+        self.assertEqual(len(human_behavior_feed.findall("channel/item")), 1)
+        human_behavior_source = next(source for source in filtered if source["slug"] == "computers-human-behavior")
+        self.assertEqual(human_behavior_source["issn"], "0747-5632")
+        self.assertNotIn("discipline", human_behavior_source)
         manifest = json.loads(outputs["manifest.json"])
         self.assertFalse(manifest["errors"])
 

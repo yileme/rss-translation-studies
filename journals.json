@@ -431,5 +431,18 @@
     "tags": ["education-research", "translator-education", "digital-ai-translation", "audiovisual-translation"],
     "indexing_evidence": "https://www.lltjournal.org/item-detail/57/",
     "description": "SSCI language learning journal; only translation, interpreting and audiovisual-translation-related papers are included."
+  },
+  {
+    "slug": "computers-human-behavior",
+    "title": "Computers in Human Behavior",
+    "publisher": "Elsevier",
+    "source_type": "crossref",
+    "issn": "0747-5632",
+    "homepage": "https://www.sciencedirect.com/journal/computers-in-human-behavior",
+    "article_filter": "translation-related",
+    "max_items": 24,
+    "tags": ["cognition-process", "digital-ai-translation", "translator-education"],
+    "indexing_evidence": "https://miar.ub.edu/issn/0747-5632",
+    "description": "SSCI human-computer interaction and psychology journal; only translation, interpreting and audiovisual-translation-related papers are included."
   }
 ]

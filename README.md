@@ -116,13 +116,14 @@ https://yileme.github.io/rss-translation-studies/feed.xml
 
 ## Cross-disciplinary SSCI Sources
 
-The existing 24 translation-studies journals are unchanged. An additional 12 journals are monitored at article level, not subscribed wholesale:
+The existing 24 translation-studies journals are unchanged. An additional 13 journals are monitored at article level, not subscribed wholesale:
 
 - Cognitive neuroscience: Language, Cognition and Neuroscience; Journal of Neurolinguistics; Cortex.
 - Psycholinguistics: Bilingualism: Language and Cognition; Applied Psycholinguistics; Journal of Memory and Language.
 - Education and language learning: System; Language Learning; Computer Assisted Language Learning; ReCALL; Computers & Education; Language Learning & Technology.
+- Human-computer interaction and behavior: Computers in Human Behavior (`computers-human-behavior.xml`).
 
-Each added source uses `article_filter: "translation-related"`, a `discipline` tag and a public `indexing_evidence` URL in `journals.json`. Public publisher/library indexing evidence was consulted on 2026-11-12; some evidence predates that date. This is a curated starting set, not an exhaustive SSCI list or a live Clarivate entitlement check. Index membership should be periodically rechecked against the Master Journal List.
+Each added source uses `article_filter: "translation-related"` and a public `indexing_evidence` URL in `journals.json`. The original twelve cross-disciplinary sources also carry a `discipline` tag; Computers in Human Behavior uses the existing cognition, digital/AI and education topics rather than being mislabeled as a psycholinguistics journal. Public publisher/library indexing evidence was consulted on 2026-11-12; some evidence predates that date. This is a curated starting set, not an exhaustive SSCI list or a live Clarivate entitlement check. Index membership should be periodically rechecked against the Master Journal List.
 
 For these sources, Crossref is scanned over a rolling 730-day publication window with cursor pagination (`lookback_days`, default 730; `search_rows`, default 100; `max_search_pages`, default 100). Only the metadata fields used by this project are requested; reference lists and other large unused fields are omitted. Requests use compressed responses when curl is available, a per-attempt wall-clock limit (`request_timeout`, default 20 seconds) and bounded retries (`request_attempts`, default 2). Truncated HTTP reads and malformed JSON are retried. Records are deduplicated by DOI/URL. Failed or incomplete API responses raise an error instead of masquerading as an empty successful feed. A healthy source with no related papers legitimately produces an empty feed.
 
